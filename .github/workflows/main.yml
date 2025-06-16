@@ -34,7 +34,7 @@ jobs:
       - name: Build Kernel
         run: |
           export PATH=/usr/bin:$PATH
-          make ARCH=arm64 realme_c21_defconfig
+          make ARCH=arm64 defconfig
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
 
       - name: Package Kernel
