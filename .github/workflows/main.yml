@@ -1,0 +1,64 @@
+name: ksu
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ksu by ${{ github.actor }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check Out
+        uses: actions/checkout@v4
+
+      - name: Cleanup
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 24
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: "10G"
+
+      - name: Prepare Environment
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git bc bison flex libncurses5-dev libssl-dev
+
+      - name: `Checkout KernelSU`
+        run: |
+          git clone https://github.com/tiann/KernelSU.git
+          cd KernelSU
+          git checkout v0.7.3 # Use the latest version or a specific version you need
+
+      - name: Apply KernelSU Patch
+        run: |
+          cd KernelSU
+          bash ./scripts/generate_patch.sh
+          cd ..
+          git apply KernelSU/kernel/kernel.patch
+
+      - name: Build Kernel
+        run: |
+          export PATH=/usr/bin:$PATH
+          make ARCH=arm64 realme_c21_defconfig
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
+
+      - name: Package Kernel
+        run: |
+          mkdir -p output
+          cp arch/arm64/boot/Image output/
+          cp arch/arm64/boot/dts/realme/*.dtb output/
+
+      - name: Upload Kernel
+        uses: softprops/action-gh-release@v1
+        with:
+          files: output/*
+          name: KernelSU Build
+          tag_name: ksu-build-${{ github.run_id }}
