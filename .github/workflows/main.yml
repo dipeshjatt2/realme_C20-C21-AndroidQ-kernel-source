@@ -31,7 +31,7 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential git bc bison flex libncurses5-dev libssl-dev
 
-      - name: `Checkout KernelSU`
+      - name: Checkout KernelSU
         run: |
           git clone https://github.com/tiann/KernelSU.git
           cd KernelSU
