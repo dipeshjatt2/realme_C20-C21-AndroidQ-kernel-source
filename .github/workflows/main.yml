@@ -35,7 +35,7 @@ jobs:
         run: |
          export PATH=/usr/bin:$PATH
          make ARCH=arm64 defconfig
-         make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs -j$(nproc)
+         make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image -j$(nproc)
 
       - name: Package Kernel
         run: |
