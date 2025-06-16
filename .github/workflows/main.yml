@@ -30,7 +30,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential git bc bison flex libncurses5-dev libssl-dev gcc-aarch64-linux-gnu
-
+      - name: Patch DTC
+        run: |
+         sed -i 's/-Werror//' scripts/dtc/Makefile
+    
       - name: Build Kernel
         run: |
          export PATH=/usr/bin:$PATH
