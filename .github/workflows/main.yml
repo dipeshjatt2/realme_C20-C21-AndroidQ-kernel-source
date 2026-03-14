@@ -46,10 +46,26 @@ jobs:
         run: |
           make O=out ARCH=$ARCH oppo6765_defconfig
 
-      - name: Fix missing oppo_phoenix header
+      - name: Create stub oppo_phoenix header
         run: |
           mkdir -p vendor/oppo/oppo_phoenix/kernel/oppo_phoenix
-          touch vendor/oppo/oppo_phoenix/kernel/oppo_phoenix/oppo_phoenix.h
+
+          cat << 'EOF' > vendor/oppo/oppo_phoenix/kernel/oppo_phoenix/oppo_phoenix.h
+#ifndef _OPPO_PHOENIX_H
+#define _OPPO_PHOENIX_H
+
+static inline void phx_set_boot_stage(int stage) {}
+
+#define KERNEL_MM_INIT_DONE 0
+#define KERNEL_LOCAL_IRQ_ENABLE 0
+#define KERNEL_DELAYACCT_INIT_DONE 0
+#define KERNEL_DRIVER_INIT_DONE 0
+#define KERNEL_DO_INITCALLS_DONE 0
+#define KERNEL_INIT_DONE 0
+#define KERNEL_DO_BASIC_SETUP_DONE 0
+
+#endif
+EOF
 
       - name: Build kernel
         run: |
