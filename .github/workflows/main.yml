@@ -1,75 +1,70 @@
 name: Build Android Kernel
 
 on:
-push:
-branches:
-- master
-- main
-workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-permissions:
-  contents: write
+    permissions:
+      contents: write
 
-steps:
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-  - name: Checkout source
-    uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential bc bison flex libssl-dev \
+            libelf-dev git zip curl \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            python2
 
-  - name: Install build dependencies
-    run: |
-      sudo apt update
-      sudo apt install -y \
-        build-essential bc bison flex libssl-dev \
-        libelf-dev git zip curl \
-        gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
-        python2
+      - name: Fix python for MTK scripts
+        run: |
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-  - name: Fix Python for MediaTek scripts
-    run: |
-      sudo ln -sf /usr/bin/python2 /usr/bin/python
+      - name: Setup environment
+        run: |
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "SUBARCH=arm64" >> $GITHUB_ENV
+          echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
 
-  - name: Setup build environment
-    run: |
-      echo "ARCH=arm64" >> $GITHUB_ENV
-      echo "SUBARCH=arm64" >> $GITHUB_ENV
-      echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+      - name: Create output directory
+        run: mkdir -p out
 
-  - name: Create output directory
-    run: mkdir -p out
+      - name: Load defconfig
+        run: |
+          make O=out ARCH=$ARCH oppo6765_defconfig
 
-  - name: Load kernel defconfig
-    run: |
-      make O=out ARCH=$ARCH oppo6765_defconfig
+      - name: Build kernel
+        run: |
+          make -j$(nproc) O=out ARCH=$ARCH CROSS_COMPILE=$CROSS_COMPILE
 
-  - name: Build kernel
-    run: |
-      make -j$(nproc) \
-      O=out \
-      ARCH=$ARCH \
-      CROSS_COMPILE=$CROSS_COMPILE
+      - name: Collect kernel files
+        run: |
+          mkdir kernel
+          cp out/arch/arm64/boot/Image.gz kernel/ 2>/dev/null || true
+          cp out/arch/arm64/boot/Image.gz-dtb kernel/ 2>/dev/null || true
+          cp out/arch/arm64/boot/dtb kernel/ 2>/dev/null || true
+          cp out/arch/arm64/boot/dts/*.dtb kernel/ 2>/dev/null || true
 
-  - name: Collect kernel files
-    run: |
-      mkdir kernel
+      - name: Package kernel
+        run: |
+          zip -r kernel-${{ github.run_number }}.zip kernel
 
-      cp out/arch/arm64/boot/Image.gz kernel/ 2>/dev/null || true
-      cp out/arch/arm64/boot/Image.gz-dtb kernel/ 2>/dev/null || true
-      cp out/arch/arm64/boot/dtb kernel/ 2>/dev/null || true
-      cp out/arch/arm64/boot/dts/*.dtb kernel/ 2>/dev/null || true
-
-  - name: Package kernel
-    run: |
-      zip -r kernel-${{ github.run_number }}.zip kernel
-
-  - name: Create GitHub Release
-    uses: softprops/action-gh-release@v2
-    with:
-      tag_name: kernel-build-${{ github.run_number }}
-      name: Kernel Build ${{ github.run_number }}
-      files: kernel-${{ github.run_number }}.zip
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: kernel-build-${{ github.run_number }}
+          name: Kernel Build ${{ github.run_number }}
+          files: kernel-${{ github.run_number }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
