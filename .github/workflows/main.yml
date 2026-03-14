@@ -31,11 +31,13 @@ jobs:
         run: |
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Setup environment
+      - name: Setup build environment
         run: |
           echo "ARCH=arm64" >> $GITHUB_ENV
           echo "SUBARCH=arm64" >> $GITHUB_ENV
           echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+          echo "KCFLAGS=-fcommon" >> $GITHUB_ENV
+          echo "HOSTCFLAGS=-fcommon" >> $GITHUB_ENV
 
       - name: Create output directory
         run: mkdir -p out
@@ -46,7 +48,12 @@ jobs:
 
       - name: Build kernel
         run: |
-          make -j$(nproc) O=out ARCH=$ARCH CROSS_COMPILE=$CROSS_COMPILE
+          make -j$(nproc) \
+            O=out \
+            ARCH=$ARCH \
+            CROSS_COMPILE=$CROSS_COMPILE \
+            KCFLAGS="$KCFLAGS" \
+            HOSTCFLAGS="$HOSTCFLAGS"
 
       - name: Collect kernel files
         run: |
